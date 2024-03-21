@@ -1,3 +1,32 @@
-# Natural language processing course 2023/24: `Put name of your project here`
+# Natural language processing course 2023/24: `Conversations with Characters in Stories for Literacy - Quick, Customized Persona Bots from novels`
 
-Please, organize README and the whole structure of the repository to be self-contained and reproducible.
+<a href="https://github.com/UL-FRI-NLP-2023-2024/ul-fri-nlp-course-project-frigpt/blob/master/LICENSE">
+	<img src="https://img.shields.io/badge/python-%2314354C.svg?&logo=python&logoColor=yellow" target="_blank" />
+</a>
+<a href="https://github.com/UL-FRI-NLP-2023-2024/ul-fri-nlp-course-project-frigpt/blob/master/LICENSE">
+	<img alt="License: Apache License 2.0" src="https://img.shields.io/github/license/saltstack/salt" target="_blank" />
+</a>
+
+
+## Project Description
+This project tackles the global literacy crisis by creating a system for generating **quick, customized persona bots** for conversations based on characters from novels. These bots will act as **pedagogical agents**, aiming to raise reading engagement and improve literacy skills.
+
+
+## Environment setup
+Install needed Python packages listed in `requirements.txt` with the following command:
+```
+pip install -r requirements.txt
+```
+
+
+## Authors
+
+| **Leon Todorov** | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Jan Rojc**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | **Andraž Zrimsek** |
+|--------------|--------------------|---------------|
+| <p align="center">[<img src="https://github.com/LeonTodorov.png" alt="Leon Todorov" width="80px" style="border-radius: 50%;"/>](https://github.com/LeonTodorov)<p/> | <p align="center">[<img src="https://github.com/JanRojc.png" alt="Jan Rojc" width="80px" style="border-radius: 50%;"/>](https://github.com/JanRojc)<p/> | <p align="center">[<img src="https://github.com/AndrazZrimsek.png" alt="Andraž Zrimsek" width="80px" style="border-radius: 50%;"/>](https://github.com/AndrazZrimsek)<p/> |
+
+
+
+
+## 📝 License
+This project is [Apache 2.0](https://github.com/UL-FRI-NLP-2023-2024/ul-fri-nlp-course-project-frigpt/blob/master/LICENSE) licensed.
