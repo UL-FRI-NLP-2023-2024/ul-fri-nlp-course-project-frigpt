@@ -154,7 +154,7 @@ def split_text(filename):
    
     text = TextLoader(filename, encoding='utf-8').load()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20) 
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20) 
     all_splits = text_splitter.split_documents(text)
 
     return all_splits
