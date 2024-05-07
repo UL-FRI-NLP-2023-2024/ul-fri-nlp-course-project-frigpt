@@ -4,6 +4,10 @@ import torch
 from data import extract_lines_from_play
 
 from sentence_transformers import SentenceTransformer
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import TextLoader
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores.faiss import FAISS
 
 def get_device():
     """
@@ -13,6 +17,11 @@ def get_device():
 
 # model = SentenceTransformer("all-MiniLM-L6-v2", device=get_device())all-mpnet-base-v2
 model = SentenceTransformer("multi-qa-mpnet-base-cos-v1", device=get_device())
+
+embedding = HuggingFaceEmbeddings(
+    model_name="all-mpnet-base-v2",
+    model_kwargs={"device": "cuda"},
+)
 
 class Book:
     def __init__(self, filepath):
@@ -58,6 +67,8 @@ class Book:
 
         self.lines = pd.DataFrame(self.embeddings)
 
+        self.contexts = split_text(filepath)
+
     def get_characters(self):
         """
         Returns the characters in the book
@@ -101,6 +112,19 @@ class Book:
 
         indices = np.argsort(similarities)[::-1][:k]
         return [(character_sentences[i], character_questions[i]) for i in indices]
+    
+    def get_retriever(self, k=1):
+        """
+        Returns the context of the given sentence
+        """
+        
+        vectorstore = FAISS.from_documents(self.contexts, embedding)
+        retriever = vectorstore.as_retriever(
+            search_type="similarity",
+            k = k
+        )
+
+        return retriever
 
 def character_lines(character, lines):
     """
@@ -122,11 +146,22 @@ def get_embedding_similarity(embedding1, embedding2):
     Returns the cosine similarity between two embeddings
     """
     return np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
+
+def split_text(filename):
+    """
+    Splits the text of a book into lines
+    """
+   
+    text = TextLoader(filename, encoding='utf-8').load()
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20) 
+    all_splits = text_splitter.split_documents(text)
+
+    return all_splits
+
+    
     
 if __name__ == '__main__':
     book = Book("data/hamlet.txt")
-    sentences = book.get_best_sentences("Who are you?", "HAMLET", 10)
-    for i, (answer, question) in enumerate(sentences):
-        print(f"{i + 1}:")
-        print(f"{question}")
-        print(f"{answer}")
+    context = book.get_context("What do you think of the king?")
+    print(context)
