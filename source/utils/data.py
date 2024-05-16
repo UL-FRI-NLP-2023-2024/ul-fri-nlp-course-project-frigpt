@@ -66,6 +66,18 @@ def extract_lines_from_play(filepath):
     df = pd.DataFrame([(k, v, i) for k, vs in character_lines.items() for v, i in vs], columns=['Character', 'Line', 'Line Number'])
     return df
 
+def remove_html_tags(text):
+    """
+    Removes HTML tags from a string
+    """
+    return re.sub(r'<.*?>', ' ', text)
+
 if __name__ == '__main__':
-    lines = extract_lines_from_play('data/ideal_husband.txt')
-    lines.to_csv('data/ideal_husband_lines.csv', index=False)
+    # lines = extract_lines_from_play('data/ideal_husband.txt')
+    # lines.to_csv('data/ideal_husband_lines.csv', index=False)
+    with open('data/golden_rose.txt', 'r', encoding='utf-8') as f:
+        text = f.read()
+        text = remove_html_tags(text)
+        with open('data/golden_rose.txt', 'w', encoding='utf-8') as f:
+            f.write(text)
+
