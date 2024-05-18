@@ -1,11 +1,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FRI Data Science_report LaTeX Template
 % Version 1.0 (28/1/2020)
-%
+% 
 % Jure Demšar (jure.demsar@fri.uni-lj.si)
 %
 % Based on MicromouseSymp article template by:
-% Mathias Legrand (legrand.mathias@gmail.com)
+% Mathias Legrand (legrand.mathias@gmail.com) 
 % With extensive modifications by:
 % Antonio Valente (antonio.luis.valente@gmail.com)
 %
@@ -34,11 +34,11 @@
 \JournalInfo{FRI Natural language processing course 2024}
 
 % Interim or final report
-\Archive{Project report}
-%\Archive{Final report}
+\Archive{Project report} 
+%\Archive{Final report} 
 
 % Article title
-\PaperTitle{Conversations with Characters in Stories for Literacy — Quick, Customized Persona Bots from novels}
+\PaperTitle{Conversations with Characters in Stories for Literacy — Quick, Customized Persona Bots from novels} 
 
 % Authors (student competitors) and their info
 \Authors{Leon Todorov, Jan Rojc, Andraž Zrimšek}
@@ -64,13 +64,13 @@ This paper explores the design and potential of PersonaBots, digital personifica
 \begin{document}
 
 % Makes all text pages the same height
-\flushbottom
+\flushbottom 
 
 % Print the title and abstract box
-\maketitle
+\maketitle 
 
 % Removes page numbering from the first page
-\thispagestyle{empty}
+\thispagestyle{empty} 
 
 %----------------------------------------------------------------------------------------
 %	ARTICLE CONTENTS
@@ -105,11 +105,11 @@ There currently exist many customizable personaBot services, such as character.a
 Pedagogical agents show promising results for enhancing children's learning (\cite{DBLP:journals/corr/abs-2004-03472}\cite{doi:10.1177/0735633117708283}). They can improve both question-asking skills and vocabulary learning depending on the design of the agent and the students' characteristics, hence pedagogical agents in the form of text conversation with characters from novels might motivate its users to read more and improve learning. \\
 
 \textbf{Theoretical systems informing PersonaBot design} \\
-When looking at conversational AI systems, there are multiple approaches of that have been studied. The model proposed in \cite{papaioannou2022designing} takes a more rule-based approach, but is mostly made to retain a human's attention rather than mimic a personality. A more useful approach is considered in \cite{li2016persona}, where a character is represented by an embedding, which should be close to the embeddings of words that are commonly around the character. With the rise of large language models (LLMs), \cite{minaee2024large} which perform great with conversational tasks, we are given many pre-trained models that can be considered. They perform great on general topics but require additional information when adapting to a specific domain. For this, we require the use of Retrieval-Augmented Generation (RAG). They allow us to find information relevant to the task from outside sources. This information can then be added to the language model's context using In Context Learning. LLMs, in combination with ICL, represent a possible approach to mimicking a persona without any parameter updates. For ICL an open source toolkit OpenICL \cite{wu2023openicl} has been released, which offers state-of-the-art retrieval and inference methods that can use to adapt ICL to a specific problem.
+When looking at conversational AI systems, there are multiple approaches of that have been studied. The model proposed in \cite{papaioannou2022designing} takes a more rule-based approach, but is mostly made to retain a human's attention rather than mimic a personality. A more useful approach is considered in \cite{li2016persona}, where a character is represented by an embedding, which should be close to the embeddings of words that are commonly around the character. With the rise of large language models (LLMs), \cite{minaee2024large} which perform great with conversational tasks, we are given many pre-trained models that can be considered. They perform great on general topics but require additional information when adapting to a specific domain. For this, we require the use of Retrieval-Augmented Generation (RAG). They allow us to find information relevant to the task from outside sources. This information can then be added to the language model's context using In Context Learning. LLMs, in combination with ICL, represent a possible approach to mimicking a persona without any parameter updates. For ICL an open source toolkit OpenICL \cite{wu2023openicl} has been released, which offers state-of-the-art retrieval and inference methods that can use to adapt ICL to a specific problem. 
 
 % --- Sentance comparison \\ tole pomojem zdele ni treba k bo sam prevec pa ni dost relevantno
 
-\textbf{Sentence comparison}
+\textbf{Sentence comparison} 
 When looking at comparing sentences, a good approach is embedding the sentence and using the spatial relation of sentence embeddings to find the closest ones. If only working with English sentences, \cite{reimers-gurevych-2019-sentence} offers a sentence embedding model based on a pretrained BERT network. If we want to enable conversations with our model in multiple languages, using a language-agnostic sentence embedding model like LASER, presented in \cite{schwenk2017learning} offers a good solution.
 
 \textbf{Situation models} \\
@@ -121,7 +121,38 @@ In this project, we will be extracting books from The Project Gutenberg reposito
 
 \section{Proposed solution}
 The solution we propose is using ICL to help a pre-trained LLM produce answers that would relate to the character. The data we would use to give it context could be using question-answer pairs that will be automatically generated from the desired novel. A possible approach is proposed in \cite{mo_2023}. An efficient method for finding relevant questions would be to use quick vector comparison methods to compare the question with questions in our dataset and use the question-answer pairs as examples to add to our model's context.
-% \section*{Methods}
+
+\section{Methods}
+At the core of our conversational agent lies a pre-trained LLaMA2 chat model. We provide it instructions through a carefully crafted system prompt, which essentially tells the LLaMA2 model how to behave and what information to consider when crafting responses.
+\subsection{RAG}
+To improve the performance of our conversational agent, we employ two types of RAG. To better capture the style of speaking of the character, we search the book for relevant lines spoken by the character. To better capture the context for the answer, we also search the entire book segments for the most relevant parts.
+\subsubsection*{Sentence extraction}
+When starting our model, we save the entire book into a class and extract lines spoken for each character. When the model receives a question, it embeds it using the \textit{multi-qa-mpnet-base-cos-v1} sentence transformer, which was trained for semantic search, especially for question-answer sentence pairs. It also returns normalized embeddings with length 1, which allows for easier comparison. With this, we aim to find the lines from our character that could be a response to the question. We compare the embedding to embeddings of all character lines and return the ones that are most similar according to cosine similarity.
+\subsubsection*{Context extraction}
+When importing the book, we also split the entire text into segments of length 500. When we receive a question, we also embed it using the \textit{all-mpnet-base-v2} sentence transformer and compare it to all the extracted segments. We add the two most similar to our prompt for context.
+\subsubsection*{ICL}
+The end product is a prompt which includes a system prompt telling our agent how to act, as well as top \textit{n} character lines and extracted context from the book.
+\subsection{Evaluation}
+\subsubsection*{Contextual awareness}
+We can assess the conversational agent's ability to understand context by measuring its performance on questions that require using the surrounding information. Here, we propose several methods for obtaining context-dependent question-answer pairs:
+\begin{itemize}
+    \item Utilize a pre-trained model like mojians/E2E-QA-Mining to automatically extract question-answer pairs directly from the book. 
+    \item Prompt LLM to generate follow-up questions based on a provided passage.
+    \item Carefully select context-dependent questions from educational websites or other curated online sources.
+    \item Manually craft context-dependent questions that specifically target the character's knowledge, experiences, or the overall story.
+\end{itemize}
+Now the context evaluation question and answer embeddings are extracted using the \textit{all-mpnet-base-v2} sentence transformer. Then we prompt the conversational agent with the question and compare the output embedding with the known answer's embedding.
+
+\subsubsection*{Character personality}
+We can evaluate how well the agent captures the character's personality by examining its responses to general conversational questions that don't necessarily have a specific answer in the book. These questions can be obtained by:
+\begin{itemize}
+    \item We can prompt LLM to generate open-ended questions.
+    \item Manually crafting open-ended questions.
+\end{itemize}
+
+Now the personality evaluation question embeddings are extracted using the \textit{all-mpnet-base-v2} sentence transformer. For each extracted question the most relevant character line is extracted by comparing the question's embedding with the embeddings of all extracted character lines and selecting the one with the highest cosine similarity. Then we prompt the conversational agent with the question and compare the output embedding with the embedding of the most relevant character line.
+
+
 
 % Use the Methods section to describe what you did an how you did it -- in what way did you prepare the data, what algorithms did you use, how did you test various solutions ... Provide all the required details for a reproduction of your work.
 
@@ -144,13 +175,13 @@ The solution we propose is using ICL to help a pre-trained LLM produce answers t
 % We can insert numbered and bullet lists:
 
 % % the [noitemsep] option makes the list more compact
-% \begin{enumerate}[noitemsep]
+% \begin{enumerate}[noitemsep] 
 % 	\item First item in the list.
 % 	\item Second item in the list.
 % 	\item Third item in the list.
 % \end{enumerate}
 
-% \begin{itemize}[noitemsep]
+% \begin{itemize}[noitemsep] 
 % 	\item First item in the list.
 % 	\item Second item in the list.
 % 	\item Third item in the list.
@@ -185,7 +216,7 @@ The solution we propose is using ICL to help a pre-trained LLM produce answers t
 % On the other hand, \figurename~\ref{fig:whole} is an example of a figure that spans across the whole page (across both columns) of the report.
 
 % % \begin{figure*} makes the figure take up the entire width of the page
-% \begin{figure*}[ht]\centering
+% \begin{figure*}[ht]\centering 
 % 	\includegraphics[width=\linewidth]{whole_page.pdf}
 % 	\caption{\textbf{Visualization of a Bayesian hierarchical model.} This is an example of a figure that spans the whole width of the report.}
 % 	\label{fig:whole}
@@ -270,6 +301,4 @@ The solution we propose is using ICL to help a pre-trained LLM produce answers t
 %----------------------------------------------------------------------------------------
 \bibliographystyle{unsrt}
 \bibliography{report}
-
-
 \end{document}
