@@ -3,5 +3,7 @@ pandas
 torch
 scipy
 matplotlib
+langchain
+langchain_community
 transformers
 sentence_transformers
