@@ -4,6 +4,10 @@ import torch
 from data import extract_lines_from_play
 
 from sentence_transformers import SentenceTransformer
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import TextLoader
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores.faiss import FAISS
 
 def get_device():
     """
@@ -14,49 +18,58 @@ def get_device():
 # model = SentenceTransformer("all-MiniLM-L6-v2", device=get_device())all-mpnet-base-v2
 model = SentenceTransformer("multi-qa-mpnet-base-cos-v1", device=get_device())
 
+embedding = HuggingFaceEmbeddings(
+    model_name="all-mpnet-base-v2",
+    model_kwargs={"device": "cuda"},
+)
+
 class Book:
-    def __init__(self, filepath):
+    def __init__(self, filepath, play=True):
         """
         Initializes a Book object
         """
-        lines = extract_lines_from_play(filepath)
-        self.lines = lines
-        self.characters = self.get_characters()
-        self.embeddings = []
 
-        for character in self.characters:
-            character_lines = self.lines[self.lines["Character"] == character]
-            character_line_ids = character_lines["Line Number"].values
-            lines_to_embed = []
-            preceding_lines = []
+        if play:
+            lines = extract_lines_from_play(filepath)
+            self.lines = lines
+            self.characters = self.get_characters()
+            self.embeddings = []
+
+            for character in self.characters:
+                character_lines = self.lines[self.lines["Character"] == character]
+                character_line_ids = character_lines["Line Number"].values
+                lines_to_embed = []
+                preceding_lines = []
 
 
-            
-            # For each line spoken by the character, get the preceding line
-            for line_number in character_line_ids:
-                if line_number == 0:
-                    preceding_line = self.lines[self.lines["Line Number"] == line_number]
-                else:
-                    preceding_line = self.lines[self.lines["Line Number"] == line_number - 1]   
-                preceding_lines.append(preceding_line["Line"].values[0])
-                # ---- UNCOMMENT THIS FOR EMBEDDING THE PRECEDING LINE ----
-                # preceding_line_text = preceding_line["Line"].values[0]
-                # character_line_text = character_lines[character_lines["Line Number"] == line_number]["Line"].values[0]
-                # line_to_embed = preceding_line_text + " " + character_line_text
-                # lines_to_embed.append(line_to_embed)
+                
+                # For each line spoken by the character, get the preceding line
+                for line_number in character_line_ids:
+                    if line_number == 0:
+                        preceding_line = self.lines[self.lines["Line Number"] == line_number]
+                    else:
+                        preceding_line = self.lines[self.lines["Line Number"] == line_number - 1]   
+                    preceding_lines.append(preceding_line["Line"].values[0])
+                    # ---- UNCOMMENT THIS FOR EMBEDDING THE PRECEDING LINE ----
+                    # preceding_line_text = preceding_line["Line"].values[0]
+                    # character_line_text = character_lines[character_lines["Line Number"] == line_number]["Line"].values[0]
+                    # line_to_embed = preceding_line_text + " " + character_line_text
+                    # lines_to_embed.append(line_to_embed)
 
-            # ---- UNCOMMENT THIS FOR EMBEDDING THE LINE SPOKEN BY THE CHARACTER ----
-            lines_to_embed = character_lines["Line"].values
-            
-            character_embeddings = generate_embeddings(lines_to_embed)
+                # ---- UNCOMMENT THIS FOR EMBEDDING THE LINE SPOKEN BY THE CHARACTER ----
+                lines_to_embed = character_lines["Line"].values
+                
+                character_embeddings = generate_embeddings(lines_to_embed)
 
-            for i, embedding in enumerate(character_embeddings):
-                self.embeddings.append({"Character": character, 
-                                        "Line": character_lines.iloc[i]["Line"], 
-                                        "Preceding": preceding_lines[i] ,
-                                        "Embedding": embedding})
+                for i, embedding in enumerate(character_embeddings):
+                    self.embeddings.append({"Character": character, 
+                                            "Line": character_lines.iloc[i]["Line"], 
+                                            "Preceding": preceding_lines[i] ,
+                                            "Embedding": embedding})
 
-        self.lines = pd.DataFrame(self.embeddings)
+            self.lines = pd.DataFrame(self.embeddings)
+
+        self.contexts = split_text(filepath)
 
     def get_characters(self):
         """
@@ -84,7 +97,7 @@ class Book:
         similarities = [get_embedding_similarity(query_embedding, embedding) for embedding in character_embeddings]
 
         indices = np.argsort(similarities)[::-1][:k]
-        return [(character_sentences[i], character_preceding[i]) for i in indices]
+        return [(character_sentences[i]) for i in indices]
     
     def get_best_answers(self, sentence, character, k=5):
         """
@@ -101,6 +114,30 @@ class Book:
 
         indices = np.argsort(similarities)[::-1][:k]
         return [(character_sentences[i], character_questions[i]) for i in indices]
+    
+    def get_questions_and_answers(self, character):
+        """
+        Returns the questions and answers of a character
+        """
+        character_lines = self.lines[(self.lines["Character"] == character) & self.lines["Preceding"].str.contains('?', regex=False)]
+        character_sentences = character_lines["Line"].values
+        character_questions = character_lines["Preceding"].values
+
+        return list(zip(character_questions, character_sentences))
+
+    
+    def get_retriever(self, k=1):
+        """
+        Returns the context of the given sentence
+        """
+        
+        vectorstore = FAISS.from_documents(self.contexts, embedding)
+        retriever = vectorstore.as_retriever(
+            search_type="similarity",
+            k = k
+        )
+
+        return retriever
 
 def character_lines(character, lines):
     """
@@ -117,16 +154,35 @@ def generate_embeddings(sentences):
     embeddings = model.encode(sentences)
     return embeddings
 
+def generate_embeddings_general(sentences):
+    """
+    Generates an embedding for a given text
+    """
+    # Load the model
+    embeddings = embedding.embed_query(sentences)
+    return embeddings
+
 def get_embedding_similarity(embedding1, embedding2):
     """
     Returns the cosine similarity between two embeddings
     """
     return np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
+
+def split_text(filename):
+    """
+    Splits the text of a book into lines
+    """
+   
+    text = TextLoader(filename, encoding='utf-8').load()
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20) 
+    all_splits = text_splitter.split_documents(text)
+
+    return all_splits
+
+    
     
 if __name__ == '__main__':
     book = Book("data/hamlet.txt")
-    sentences = book.get_best_sentences("Who are you?", "HAMLET", 10)
-    for i, (answer, question) in enumerate(sentences):
-        print(f"{i + 1}:")
-        print(f"{question}")
-        print(f"{answer}")
+    context = book.get_context("What do you think of the king?")
+    print(context)
