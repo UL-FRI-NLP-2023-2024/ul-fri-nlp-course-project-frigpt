@@ -64,9 +64,9 @@ def plot_NER_results(text, character, top_k=10):
 
 	# plot peaks
 	plt.figure()
-	plt.plot(kde, label="KDE")
+	plt.plot(kde, label="PDF")
 	plt.vlines(peaks, 0, 0.08, color='r', linestyles='--', label="Peaks")
-	plt.title("Peaks in KDE")
+	plt.title("Peaks in PDF")
 	plt.xlabel("Position in book")
 	plt.ylabel("Density")
 	plt.xticks(np.arange(0, len(kde), 5000), x_axis[::5000])
