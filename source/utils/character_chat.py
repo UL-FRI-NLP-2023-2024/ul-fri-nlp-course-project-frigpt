@@ -3,6 +3,23 @@ from model import create_text_generator
 import NER
 import numpy as np
 
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores.faiss import FAISS
+
+embedding = HuggingFaceEmbeddings(
+    model_name="all-mpnet-base-v2",
+    model_kwargs={"device": "cuda"},
+)
+
+def get_retriever(contexts, k=2):
+    vectorstore = FAISS.from_texts(contexts, embedding)
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        k = k
+    )
+
+    return retriever
+
 class Character_chat:
     def __init__(self, character_name, book, book_name, context_strategy={}):
         self.text_generator = create_text_generator()
@@ -26,11 +43,13 @@ class Character_chat:
                 relevant_context = NER.get_context(parsed_corpus, peak_locs[i], context_size=context_strategy["context_size"])
                 self.ner_lines.append(relevant_context)
             print(self.ner_lines)
+            contexts = [NER.get_context(parsed_corpus, peak, context_size=context_strategy["context_size"]) for peak in peak_locs]
+            self.retriever = get_retriever(contexts, self.context_strategy["num_peaks"])
 
         self.prompt = f"""<s>[INST] <<SYS>>
 You are {character_name}, a fictional character from {book_name}.
 When you are asked a question or told something you must only respond in character. Try to respond in a single sentence.
-Do not respond with a question.
+Do not respond with a question. Do not use dialogue tags.
 <</SYS>>"""
         self.prompt += """{character_quotes}
         """
@@ -47,8 +66,9 @@ Do not respond with a question.
 {character_quotes}"""
             # input = self.prompt.format(user_input=user_input, character_quotes=character_quotes)
         elif self.context_strategy["add_ner"]:
-            character_quotes = "\n".join(["PART OF BOOK: " + line + "..." for line in self.ner_lines])
-            character_quotes = f"""You are given some parts of the book that are relevant for the character:
+            relevant_ner_lines = self.retriever.invoke(user_input)
+            character_quotes = "\n".join(["PART OF BOOK: " + line.page_content + "..." for line in relevant_ner_lines])
+            character_quotes = f"""You are given some parts of the book that contain relevant information:
 {character_quotes}"""
         else:
             character_quotes = ""
