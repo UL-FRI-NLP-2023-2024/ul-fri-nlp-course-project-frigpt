@@ -2,6 +2,7 @@
 from transformers import LlamaForCausalLM, LlamaTokenizer, pipeline, BitsAndBytesConfig
 import torch
 
+HF_Token = "<Input your HF token here>"
 
 def create_text_generator():
     bnb_config = BitsAndBytesConfig(
@@ -12,8 +13,8 @@ def create_text_generator():
     )
 
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = LlamaForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token="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", torch_dtype=torch.float16, quantization_config=bnb_config)
-    tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token="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", torch_dtype=torch.float16)
+    model = LlamaForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=HF_Token, torch_dtype=torch.float16, quantization_config=bnb_config)
+    tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token=HF_Token, torch_dtype=torch.float16)
 
     text_generator = pipeline('text-generation',
                             model=model,
