@@ -22,6 +22,7 @@ class Book:
         self.lines = lines
         self.characters = self.get_characters()
         self.embeddings = []
+        self.filepath = filepath
 
         for character in self.characters:
             character_lines = self.lines[self.lines["Character"] == character]
