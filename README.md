@@ -20,12 +20,6 @@ To chat with our Hamlet persona bot yourself, follow these steps:
 5. Execute all the code cells in the notebook to set up the environment and load the model
 6. Converse with our persona bot in the last colab cell
 
-## Local Environment
-To run the code locally, install needed Python packages listed in `requirements.txt` with the following command:
-```
-pip install -r requirements.txt
-```
-
 
 ## Authors
 
